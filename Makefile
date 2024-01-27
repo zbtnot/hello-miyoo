@@ -1,30 +1,40 @@
-# Building and uploading binaries to the mini is kinda tedious, so this helps facilitate local development
-# assumes an ubuntu desktop with the SDL 1.2 dev packages installed
-# i.e., `apt install libsdl1.2-dev libsdl-image1.2 libsdl-mixer1.2 libsdl-ttf2.0`
-# then run `TARGET=ubuntu make` or `TARGET=miyoo make` as needed
+# assumes a desktop with the raylib library installed and the emscripten sdk
+# i.e., `brew install raylib` for desktop
+# for web, `brew install emscripten` and then download the wasm build of raylib into dep:
+# curl -sL https://github.com/raysan5/raylib/releases/download/5.0/raylib-5.0_webassembly.zip | bsdtar -x -C ./dep
+# then run `TARGET=desktop make` or `TARGET=wasm make` as needed
 
-MIYOO_CXX := arm-linux-gnueabihf-g++
-MIYOO_PREFIX := /opt/miyoomini-toolchain/arm-linux-gnueabihf/libc
-MIYOO_CXXFLAGS := -I$(MIYOO_PREFIX)/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT
-MIYOO_LDFLAGS := -L$(MIYOO_PREFIX)/usr/lib -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer -lpthread
-MIYOO_TARGET_EXEC := app.miyoo.bin
+DESKTOP_CXX := clang++
+DESKTOP_PREFIX := /opt/homebrew
+DESKTOP_CXXFLAGS := -I $(DESKTOP_PREFIX)/include -std=c++20
+DESKTOP_LDFLAGS := -L $(DESKTOP_PREFIX)/lib -lraylib -lm
+DESKTOP_TARGET_EXEC := app.desktop.bin
 
-UBUNTU_CXX := g++
-UBUNTU_PREFIX := /
-UBUNTU_CXXFLAGS := -I$(UBUNTU_PREFIX)/usr/include/SDL -D_GNU_SOURCE=1 -D_REENTRANT
-UBUNTU_LDFLAGS := -L$(UBUNTU_PREFIX)/usr/lib -lSDL -lSDL_image -lSDL_ttf -lSDL_mixer -lpthread
-UBUNTU_TARGET_EXEC := app.ubuntu.bin
+WASM_CXX := emcc
+WASM_PREFIX := ./dep
+WASM_RAYLIB_PATH := $(WASM_PREFIX)/raylib-5.0_webassembly
+WASM_CXXFLAGS := -I $(WASM_RAYLIB_PATH)/include
+WASM_LDFLAGS := -L $(WASM_RAYLIB_PATH)/lib \
+	-lraylib \
+	-lm \
+	-s USE_GLFW=3 \
+	-s GL_ENABLE_GET_PROC_ADDRESS \
+	-s WASM=1 \
+	-s MODULARIZE=1 \
+	-s EXPORT_ES6=1 \
+	--embed-file ./assets
+WASM_TARGET_EXEC := index.js
 
-ifeq ($(TARGET),miyoo)
-	CXX=$(MIYOO_CXX)
-	CXXFLAGS=$(MIYOO_CXXFLAGS)
-	LDFLAGS=$(MIYOO_LDFLAGS)
-	TARGET_EXEC=$(MIYOO_TARGET_EXEC)
+ifeq ($(TARGET),wasm)
+	CXX=$(WASM_CXX)
+	CXXFLAGS=$(WASM_CXXFLAGS)
+	LDFLAGS=$(WASM_LDFLAGS)
+	TARGET_EXEC=$(WASM_TARGET_EXEC)
 else
-	CXX=$(UBUNTU_CXX)
-	CXXFLAGS=$(UBUNTU_CXXFLAGS)
-	LDFLAGS=$(UBUNTU_LDFLAGS)
-	TARGET_EXEC=$(UBUNTU_TARGET_EXEC)
+	CXX=$(DESKTOP_CXX)
+	CXXFLAGS=$(DESKTOP_CXXFLAGS)
+	LDFLAGS=$(DESKTOP_LDFLAGS)
+	TARGET_EXEC=$(DESKTOP_TARGET_EXEC)
 endif
 
 BUILD_DIR := ./build/$(TARGET)
@@ -35,10 +45,17 @@ ASSETS_DIR := ./assets
 SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
+ifeq ($(TARGET),wasm)
+bin/$(TARGET_EXEC): $(OBJS)
+	mkdir -p $(dir $@)
+	$(CXX) $(OBJS) -o bin/$(TARGET_EXEC) $(LDFLAGS)
+	cp src/*.html bin
+else
 bin/$(TARGET_EXEC): $(OBJS)
 	mkdir -p $(dir $@)
 	$(CXX) $(OBJS) -o bin/$(TARGET_EXEC) $(LDFLAGS)
 	cp -r $(ASSETS_DIR) bin
+endif
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	mkdir -p $(dir $@)
@@ -46,5 +63,5 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 
 .PHONY: clean
 clean:
-	rm -r $(BUILD_DIR)/*
-	rm $(BIN_DIR)/*
+	rm -rf $(BUILD_DIR)/*
+	rm -rf $(BIN_DIR)/*

@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    </head>
+
+    <body>
+        <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+        <script type="module">
+            import Module from "./index.js";
+
+            let runner = null;
+            async function boot() {
+                if (!runner) {
+                    runner = await Module({
+                        canvas: document.querySelector("#canvas"),
+                    });
+                }
+            }
+
+            function pause() {
+                if (runner) {
+                    runner["_pause"]();
+                }
+            }
+
+            function resume() {
+                if (runner) {
+                    runner["_unpause"]();
+                }
+            }
+
+            function quit() {
+                if (runner) {
+                    runner["_shutdown"]();
+                    runner = null;
+                }
+            }
+
+            document.querySelector("#boot").addEventListener("click", boot);
+            document.querySelector("#pause").addEventListener("click", pause);
+            document.querySelector("#resume").addEventListener("click", resume);
+            document.querySelector("#quit").addEventListener("click", quit);
+        </script>
+        <button id="boot">Boot</button>
+        <button id="pause">Pause</button>
+        <button id="resume">Resume</button>
+        <button id="quit">Quit</button>
+    </body>
+</html>

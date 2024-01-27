@@ -1,136 +1,114 @@
-#include <SDL/SDL.h>
-#include <SDL/SDL_image.h>
-#include <SDL/SDL_ttf.h>
-#include <SDL/SDL_mixer.h>
+#include "raylib.h"
+#include "raymath.h"
+#include <string>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
-// Screen formatting
+#ifdef __EMSCRIPTEN__
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE void pause() { emscripten_pause_main_loop(); }
+    EMSCRIPTEN_KEEPALIVE void unpause() { emscripten_resume_main_loop(); }
+    EMSCRIPTEN_KEEPALIVE void shutdown() { emscripten_cancel_main_loop(); }
+}
+#endif
+
+// resources
+Sound boop;
+Music bgm;
+Texture2D bg;
+Font font;
+std::string hello = "Hello World";
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
-const int BITS_PER_PIXEL = 32;
-
-// Font formatting
 const int FONT_SIZE = 64;
 
-const int AUDIO_CHUNK_SIZE = 512;
+// forward declarations
+void init();
+void deinit();
+void loop();
 
-// Button Helpers
-const SDLKey BTN_A = SDLK_SPACE;
-const SDLKey BTN_MENU = SDLK_ESCAPE;
+int main(void) {
+    const int TARGET_FPS = 60;
 
-// Resource paths
-const char *imagePath = "assets/img/battleback8.png";
-const char *fontPath = "assets/font/MMXSNES.ttf";
-const char *bgmPath = "assets/bgm/Mars.wav";
-const char *sfxPath = "assets/sfx/hop.wav";
+    init();
 
-const SDL_Color COLOR_WHITE = {255, 255, 255};
-const SDL_Color COLOR_BLACK = {0, 0, 0};
-
-const int LOOP_MUSIC = 1;
-
-int main(int argc, char **argv) {
-    // init
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-    IMG_Init(IMG_INIT_PNG);
-    TTF_Init();
-    Mix_Init(MIX_INIT_OGG);
-    Mix_OpenAudio(
-            MIX_DEFAULT_FREQUENCY,
-            MIX_DEFAULT_FORMAT,
-            MIX_DEFAULT_CHANNELS,
-            AUDIO_CHUNK_SIZE
-    );
-
-    Mix_Chunk *sfx = Mix_LoadWAV(sfxPath);
-    Mix_Chunk *bgm = Mix_LoadWAV(bgmPath);
-
-    SDL_Surface *video = SDL_SetVideoMode(
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT,
-            BITS_PER_PIXEL,
-            SDL_HWSURFACE | SDL_DOUBLEBUF
-    );
-    SDL_Surface *screen = SDL_CreateRGBSurface(
-            SDL_HWSURFACE,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT,
-            BITS_PER_PIXEL,
-            0, 0, 0, 0
-    );
-    bool done = false;
-
-    // load resources
-    TTF_Font *font = TTF_OpenFont(fontPath, FONT_SIZE);
-    SDL_Surface *text = TTF_RenderUTF8_Shaded(font, "Hello world", COLOR_BLACK, COLOR_WHITE);
-    SDL_Surface *background = IMG_Load(imagePath);
-
-    // play music
-    int bgmChannel = Mix_PlayChannel(-1, bgm, -1);
-
-    while (!done) {
-        // poll for input
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                done = true;
-                continue;
-            }
-
-            if (event.type == SDL_KEYUP) {
-                switch (event.key.keysym.sym) {
-                    case BTN_A:
-                        Mix_PlayChannel(-1, sfx, 0);
-                        break;
-                    case BTN_MENU:
-                        done = true;
-                        continue;
-                }
-            }
-        }
-
-        // clear screen
-        SDL_FillRect(screen, nullptr, SDL_MapRGB(screen->format, COLOR_WHITE.r, COLOR_WHITE.g, COLOR_WHITE.b));
-        // draw image to screen
-        SDL_BlitSurface(background, nullptr, screen, nullptr);
-
-        // to center the text we need to know how wide the text is
-        SDL_Rect textCentered = {
-                (Sint16)((SCREEN_WIDTH - text->w) / 2),
-                (Sint16)((SCREEN_HEIGHT - text->h) / 2),
-                0,
-                0
-        };
-        // TTF_RenderUTF8_Shaded puts a nice outlined box around our text, but it has too much height.
-        // This clips it down to a nice size.
-        SDL_Rect textClipped = {
-                0,
-                12,
-                (Uint16)text->w,
-                (Uint16)text->h
-        };
-        SDL_BlitSurface(text, &textClipped, screen, &textCentered);
-
-        // draw screen to vram
-        SDL_BlitSurface(screen, nullptr, video, nullptr);
-        SDL_Flip(video);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(loop, TARGET_FPS, 1);
+#else
+    SetTargetFPS(TARGET_FPS);
+    while (!WindowShouldClose()) {
+        loop();
     }
-    Mix_HaltChannel(-1);
+#endif
 
-    Mix_FreeChunk(sfx);
-    Mix_FreeChunk(bgm);
-
-    TTF_CloseFont(font);
-
-    SDL_FreeSurface(text);
-    SDL_FreeSurface(background);
-    SDL_FreeSurface(screen);
-    SDL_FreeSurface(video);
-
-    // shutdown
-    Mix_Quit();
-    TTF_Quit();
-    IMG_Quit();
-    SDL_Quit();
+    deinit();
 
     return 0;
+}
+
+void init() {
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, hello.c_str());
+    InitAudioDevice();
+
+    boop = LoadSound("./assets/sfx/hop.wav");
+    bgm = LoadMusicStream("./assets/bgm/Mars.wav");
+    bg = LoadTexture("./assets/img/battleback8.png");
+    font = LoadFontEx("./assets/font/MMXSNES.ttf", 96, 0, 0);
+    SetMusicVolume(bgm, 0.15);
+    PlayMusicStream(bgm);
+}
+
+void deinit() {
+    UnloadFont(font);
+    UnloadTexture(bg);
+    UnloadMusicStream(bgm);
+    UnloadSound(boop);
+
+    CloseAudioDevice();
+    CloseWindow();
+}
+
+void loop() {
+    UpdateMusicStream(bgm);
+
+    // update
+    if (IsKeyPressed(KEY_Z)) {
+        PlaySound(boop);
+    }
+
+    // draw
+    BeginDrawing();
+    ClearBackground(BLACK);
+
+    // draw the background image, scaling it to the destination viewport
+    const Rectangle src = {
+        .x = 0,
+        .y = 0,
+        .width = (float)bg.width,
+        .height = (float)bg.height
+    };
+    const Rectangle dest = {
+        .x = 0,
+        .y = 0,
+        .width = SCREEN_WIDTH,
+        .height = SCREEN_HEIGHT
+    };
+    DrawTexturePro(bg, src, dest, Vector2Zero(), 0, WHITE);
+
+    // draws a white background box for our text
+    Vector2 textLength = MeasureTextEx(font, hello.c_str(), FONT_SIZE, 0);
+    Vector2 textPosition = {
+        .x = SCREEN_WIDTH / 2 - textLength.x / 2,
+        .y = SCREEN_HEIGHT / 2 - textLength.y / 2
+    };
+    DrawRectangleV(
+        (Vector2){textPosition.x, textPosition.y + 10},
+        (Vector2){textLength.x, textLength.y - 10},
+        WHITE
+    );
+
+    DrawTextEx(font, hello.c_str(), textPosition, FONT_SIZE, 0.0f, BLACK);
+
+    EndDrawing();
 }

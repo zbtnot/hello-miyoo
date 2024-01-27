@@ -1,10 +1,23 @@
-# Hello Miyoo
-A silly little demo for the Miyoo Mini
+# Hello ~~Miyoo~~ WebAssembly
+A silly little demo for the browser
 --------------------------------------
-- Uses SDL 1.2 (yeah, someone should figure out how to port SDL2)
-- Uses the awesome union toolchain https://github.com/shauninman/union-miyoomini-toolchain 
-    - Clone that repo 
-    - Clone this one into the workspace directory
+- Uses raylib (both SDL versions are very buggy in the browser)
+- Wasm bits handled by Emscripten
+
+## Building for the web
+- Install emscripten (`brew install emscripten`)
+- Download the wasm build of raylib into the dep directory:
+```sh
+curl -sL https://github.com/raysan5/raylib/releases/download/5.0/raylib-5.0_webassembly.zip \
+| bsdtar -x -C ./dep
+```
+- Run `TARGET=wasm make` to build the project
+- Serve the build `npx http-server ./bin`
+
+## Building for desktop
+- Install raylib from your package manager (`brew install raylib`)
+- Run `TARGET=desktop make`
+
 
 Assets
 ------
