@@ -5,11 +5,20 @@
 #include <emscripten.h>
 #endif
 
+// forward declarations
+void init();
+void deinit();
+void loop();
+
 #ifdef __EMSCRIPTEN__
 extern "C" {
     EMSCRIPTEN_KEEPALIVE void pause() { emscripten_pause_main_loop(); }
     EMSCRIPTEN_KEEPALIVE void unpause() { emscripten_resume_main_loop(); }
-    EMSCRIPTEN_KEEPALIVE void shutdown() { emscripten_cancel_main_loop(); }
+
+    EMSCRIPTEN_KEEPALIVE void shutdown() {
+        emscripten_cancel_main_loop();
+        deinit();
+    }
 }
 #endif
 
@@ -23,14 +32,8 @@ const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 const int FONT_SIZE = 64;
 
-// forward declarations
-void init();
-void deinit();
-void loop();
-
 int main(void) {
     const int TARGET_FPS = 60;
-
     init();
 
 #ifdef __EMSCRIPTEN__
@@ -40,9 +43,8 @@ int main(void) {
     while (!WindowShouldClose()) {
         loop();
     }
-#endif
-
     deinit();
+#endif
 
     return 0;
 }
