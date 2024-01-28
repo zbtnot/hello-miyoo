@@ -22,7 +22,8 @@ WASM_LDFLAGS := -L $(WASM_RAYLIB_PATH)/lib \
 	-s WASM=1 \
 	-s MODULARIZE=1 \
 	-s EXPORT_ES6=1 \
-	--embed-file ./assets
+	--embed-file ./assets \
+	-O3
 WASM_TARGET_EXEC := index.js
 
 ifeq ($(TARGET),wasm)
