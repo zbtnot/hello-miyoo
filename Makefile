@@ -43,13 +43,16 @@ BIN_DIR := ./bin
 ASSETS_DIR := ./assets
 
 SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
+WEB_SRCS := $(shell find $(SRC_DIRS) -name '*.html')
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 
 ifeq ($(TARGET),wasm)
-bin/$(TARGET_EXEC): $(OBJS)
+bin/$(TARGET_EXEC): $(OBJS) web
 	mkdir -p $(dir $@)
 	$(CXX) $(OBJS) -o bin/$(TARGET_EXEC) $(LDFLAGS)
-	cp src/*.html bin
+
+web: $(WEB_SRCS)
+	cp $(WEB_SRCS) bin
 else
 bin/$(TARGET_EXEC): $(OBJS)
 	mkdir -p $(dir $@)

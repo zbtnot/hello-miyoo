@@ -1,51 +1,71 @@
 <!doctype html>
-<html>
-    <head>
-        <meta charset="utf-8" />
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    </head>
+<html lang="en">
+<head>
+    <title>Hello WebAssembly!</title>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+        body {
+            background-color: #333;
+        }
 
-    <body>
-        <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-        <script type="module">
-            import Module from "./index.js";
+        .container {
+            margin-bottom: 10px;
+            min-width: 80%;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+</div>
+<div class="container">
+    <button id="boot">Boot</button>
+    <button id="pause">Pause</button>
+    <button id="resume">Resume</button>
+    <button id="quit">Quit</button>
+</div>
 
-            let runner = null;
-            async function boot() {
-                if (!runner) {
-                    runner = await Module({
-                        canvas: document.querySelector("#canvas"),
-                    });
-                }
-            }
+<script type="module">
+    import Module from "./index.js";
 
-            function pause() {
-                if (runner) {
-                    runner["_pause"]();
-                }
-            }
+    let runner = null;
 
-            function resume() {
-                if (runner) {
-                    runner["_unpause"]();
-                }
-            }
+    async function boot() {
+        if (!runner) {
+            runner = await Module({
+                canvas: document.querySelector("#canvas"),
+            });
+        }
+    }
 
-            function quit() {
-                if (runner) {
-                    runner["_shutdown"]();
-                    runner = null;
-                }
-            }
+    function pause() {
+        if (runner) {
+            runner["_pause"]();
+        }
+    }
 
-            document.querySelector("#boot").addEventListener("click", boot);
-            document.querySelector("#pause").addEventListener("click", pause);
-            document.querySelector("#resume").addEventListener("click", resume);
-            document.querySelector("#quit").addEventListener("click", quit);
-        </script>
-        <button id="boot">Boot</button>
-        <button id="pause">Pause</button>
-        <button id="resume">Resume</button>
-        <button id="quit">Quit</button>
-    </body>
+    function resume() {
+        if (runner) {
+            runner["_unpause"]();
+        }
+    }
+
+    function quit() {
+        if (runner) {
+            runner["_shutdown"]();
+            runner = null;
+        }
+    }
+
+    document.querySelector("#boot").addEventListener("click", boot);
+    document.querySelector("#pause").addEventListener("click", pause);
+    document.querySelector("#resume").addEventListener("click", resume);
+    document.querySelector("#quit").addEventListener("click", quit);
+</script>
+</body>
 </html>

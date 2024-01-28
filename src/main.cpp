@@ -48,7 +48,13 @@ int main(void) {
 }
 
 void init() {
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, hello.c_str());
+    const char *title;
+    #ifdef __EMSCRIPTEN__
+        title = emscripten_get_window_title();
+    #else
+        title = hello.c_str();
+    #endif
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, title);
     InitAudioDevice();
 
     boop = LoadSound("./assets/sfx/hop.wav");
